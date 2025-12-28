@@ -102,7 +102,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
       // Googleが提供するテスト用の広告ユニットIDを使用します。
       // これにより、本番IDがなくても安全にテスト・リリースが可能です。
       // アプリのリリース後に、ご自身の本番IDに差し替えてください。
-      adUnitId: 'ca-app-pub-3940256099942544/6300978111',
+      adUnitId: 'ca-app-pub-9575784455721701/7745928965',
       request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
