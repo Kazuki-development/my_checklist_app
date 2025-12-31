@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'settings_model.dart';
+import 'settings_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
 
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => SettingsModel(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -13,9 +22,39 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: const ChecklistPage(),
+    return Consumer<SettingsModel>(
+      builder: (context, settings, child) {
+        TextTheme? getTextTheme(TextTheme base) {
+          switch (settings.fontFamily) {
+            case 'Noto Sans JP':
+              return GoogleFonts.notoSansJpTextTheme(base);
+            case 'M PLUS Rounded 1c':
+              return GoogleFonts.mPlusRounded1cTextTheme(base);
+            case 'Sawarabi Mincho':
+              return GoogleFonts.sawarabiMinchoTextTheme(base);
+            default:
+              return base;
+          }
+        }
+
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(seedColor: settings.themeColor),
+            textTheme: getTextTheme(Theme.of(context).textTheme),
+            appBarTheme: AppBarTheme(
+              backgroundColor: settings.themeColor,
+              foregroundColor: Colors.white,
+            ),
+            floatingActionButtonTheme: FloatingActionButtonThemeData(
+              backgroundColor: settings.themeColor,
+              foregroundColor: Colors.white,
+            ),
+          ),
+          home: const ChecklistPage(),
+        );
+      },
     );
   }
 }
@@ -429,33 +468,41 @@ class _ChecklistPageState extends State<ChecklistPage> {
     });
   }
 
-  void _resetAllChecks() {
-    setState(() {
-      for (var item in _checklistItems) {
-        item.isChecked = false;
-      }
-    });
-  }
+
 
   @override
   Widget build(BuildContext context) {
+    final settings = Provider.of<SettingsModel>(context);
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.settings),
+          tooltip: '設定',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsPage()),
+            );
+          },
+        ),
         title: const Row(
           children: <Widget>[
             Icon(Icons.playlist_add_check, color: Colors.white),
             SizedBox(width: 8.0),
-            Text('お出かけ前チェックリスト', style: TextStyle(color: Colors.white)),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'お出かけ前チェックリスト',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
           ],
         ),
-        backgroundColor: Colors.teal,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _resetAllChecks,
-          ),
-        ],
+        backgroundColor: settings.themeColor, // Use settings color
       ),
       body: Column(
         children: [
@@ -484,7 +531,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                         title: Row(
                           children: [
                             Icon(_checklistItems[index].icon,
-                                color: Colors.teal),
+                                color: settings.themeColor), // Use settings color
                             const SizedBox(width: 16),
                             Expanded(
                               child: Text(
@@ -519,20 +566,18 @@ class _ChecklistPageState extends State<ChecklistPage> {
               ],
             ),
           ),
-          if (_isBannerAdReady)
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: SizedBox(
-                width: _bannerAd!.size.width.toDouble(),
-                height: _bannerAd!.size.height.toDouble(),
-                child: AdWidget(ad: _bannerAd!),
-              ),
-            ),
         ],
       ),
+      bottomNavigationBar: _isBannerAdReady
+          ? SizedBox(
+              width: _bannerAd!.size.width.toDouble(),
+              height: _bannerAd!.size.height.toDouble(),
+              child: AdWidget(ad: _bannerAd!),
+            )
+          : null,
       floatingActionButton: FloatingActionButton(
         onPressed: _showMainActionSheet,
-        backgroundColor: Colors.teal,
+        backgroundColor: settings.themeColor, // Use settings color
         child: const Icon(Icons.add),
       ),
     );
