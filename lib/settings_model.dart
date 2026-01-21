@@ -31,7 +31,7 @@ class SettingsModel extends ChangeNotifier {
     _themeColor = color;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('themeColor', color.value);
+    await prefs.setInt('themeColor', color.toARGB32());
   }
 
   Future<void> setFontFamily(String font) async {

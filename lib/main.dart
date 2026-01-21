@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'settings_model.dart';
 import 'settings_page.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -69,6 +71,28 @@ class ChecklistItem {
     required this.icon,
     this.isChecked = false,
   });
+
+  // Convert to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'icon': icon.codePoint,
+      'fontFamily': icon.fontFamily, // Need to save font family for icons
+      'isChecked': isChecked,
+    };
+  }
+
+  // Create from JSON
+  factory ChecklistItem.fromJson(Map<String, dynamic> json) {
+    return ChecklistItem(
+      title: json['title'],
+      icon: IconData(
+        json['icon'],
+        fontFamily: json['fontFamily'] ?? 'MaterialIcons',
+      ),
+      isChecked: json['isChecked'] ?? false,
+    );
+  }
 }
 
 class ChecklistPage extends StatefulWidget {
@@ -217,6 +241,54 @@ class _ChecklistPageState extends State<ChecklistPage> {
   void initState() {
     super.initState();
     _loadBannerAd();
+    _loadData();
+  }
+
+  // Save data to SharedPreferences
+  Future<void> _saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // Save Checklist Items
+    final String itemsJson = jsonEncode(
+      _checklistItems.map((item) => item.toJson()).toList(),
+    );
+    await prefs.setString('checklist_items', itemsJson);
+
+    // Save Templates
+    final Map<String, dynamic> templatesJson = {};
+    _templates.forEach((key, value) {
+      templatesJson[key] = value.map((item) => item.toJson()).toList();
+    });
+    await prefs.setString('checklist_templates', jsonEncode(templatesJson));
+  }
+
+  // Load data from SharedPreferences
+  Future<void> _loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      // Load Checklist Items
+      final String? itemsString = prefs.getString('checklist_items');
+      if (itemsString != null) {
+        final List<dynamic> decodedItems = jsonDecode(itemsString);
+        _checklistItems = decodedItems
+            .map((item) => ChecklistItem.fromJson(item))
+            .toList();
+      }
+
+      // Load Templates
+      final String? templatesString = prefs.getString('checklist_templates');
+      if (templatesString != null) {
+        final Map<String, dynamic> decodedTemplates = jsonDecode(templatesString);
+        _templates.clear();
+        decodedTemplates.forEach((key, value) {
+          final List<dynamic> itemsList = value;
+          _templates[key] = itemsList
+              .map((item) => ChecklistItem.fromJson(item))
+              .toList();
+        });
+      }
+    });
   }
 
   @override
@@ -245,6 +317,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
               leading: const Icon(Icons.library_add_check_outlined),
               title: const Text('テンプレートから追加'),
               onTap: () {
+                _saveData(); // Save after saving template
                 Navigator.pop(context);
                 _showTemplateDialog();
               },
@@ -297,6 +370,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                         .toList();
                     _templates[_templateNameController.text] = newTemplateItems;
                   });
+                  _saveData(); // Save after creating new template
                   Navigator.of(context).pop();
                   _templateNameController.clear();
                 }
@@ -329,6 +403,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                 setState(() {
                   _templates.remove(templateKey);
                 });
+                _saveData(); // Save after deleting template
                 setDialogState(() {});
                 Navigator.of(dialogContext).pop();
                 // Close the template list dialog as well
@@ -405,6 +480,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                     _checklistItems =
                         List<ChecklistItem>.from(_templates[templateKey]!);
                   });
+                  _saveData(); // Save after replacing items
                   Navigator.of(context).pop();
                 },
               ),
@@ -414,6 +490,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                   setState(() {
                     _checklistItems.addAll(_templates[templateKey]!);
                   });
+                  _saveData(); // Save after adding items
                   Navigator.of(context).pop();
                 },
               ),
@@ -526,6 +603,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                             ),
                           );
                         });
+                        _saveData(); // Save after adding item
                         Navigator.of(context).pop();
                         _textFieldController.clear();
                       }
@@ -558,6 +636,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                 setState(() {
                   _checklistItems.remove(itemToDelete);
                 });
+                _saveData(); // Save after deleting item
                 Navigator.of(context).pop();
               },
             ),
@@ -636,6 +715,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                       _checklistItems.removeAt(oldIndex);
                   _checklistItems.insert(newIndex, item);
                 });
+                _saveData(); // Save after reordering
               },
               children: <Widget>[
                 for (int index = 0; index < _checklistItems.length; index++)
@@ -670,6 +750,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                           setState(() {
                             _checklistItems[index].isChecked = newValue!;
                           });
+                          _saveData(); // Save after checking/unchecking
                         },
                         secondary: _isEditing
                             ? IconButton(
