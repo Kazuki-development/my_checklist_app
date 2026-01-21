@@ -81,6 +81,60 @@ class ChecklistPage extends StatefulWidget {
 class _ChecklistPageState extends State<ChecklistPage> {
   BannerAd? _bannerAd;
   bool _isBannerAdReady = false;
+  bool _isEditing = false;
+
+  // Icon Categories
+  final Map<String, List<IconData>> _iconCategories = {
+    '基本': [
+      Icons.check_box_outline_blank,
+      Icons.star,
+      Icons.favorite,
+      Icons.lightbulb,
+      Icons.schedule,
+    ],
+    '生活': [
+      Icons.shopping_cart,
+      Icons.local_grocery_store,
+      Icons.restaurant,
+      Icons.local_cafe,
+      Icons.medication,
+      Icons.local_hospital,
+      Icons.pets,
+      Icons.cleaning_services,
+    ],
+    '仕事/学校': [
+      Icons.work,
+      Icons.school,
+      Icons.computer,
+      Icons.badge,
+      Icons.contact_mail,
+      Icons.edit,
+      Icons.book,
+    ],
+    '旅行/移動': [
+      Icons.airplanemode_active,
+      Icons.train,
+      Icons.directions_car,
+      Icons.directions_bus,
+      Icons.hotel,
+      Icons.camera_alt,
+      Icons.map,
+      Icons.wallet,
+      Icons.article,
+    ],
+    'その他': [
+      Icons.sports_esports,
+      Icons.music_note,
+      Icons.movie,
+      Icons.fitness_center,
+      Icons.pool,
+      Icons.child_friendly,
+      Icons.build,
+      Icons.phone_android,
+      Icons.umbrella,
+      Icons.lock,
+    ],
+  };
 
   List<ChecklistItem> _checklistItems = [
     ChecklistItem(title: '鍵', icon: Icons.vpn_key),
@@ -369,92 +423,116 @@ class _ChecklistPageState extends State<ChecklistPage> {
   }
 
   void _showAddItemDialog() {
-    final List<IconData> iconChoices = [
-      Icons.check_box_outline_blank,
-      Icons.work,
-      Icons.shopping_cart,
-      Icons.train,
-      Icons.airplanemode_active,
-      Icons.medication,
-      Icons.pets,
-      Icons.book,
-      Icons.camera_alt,
-      Icons.school,
-      Icons.event,
-      Icons.restaurant,
-      Icons.local_cafe,
-      Icons.movie,
-      Icons.music_note,
-      Icons.sports_esports,
-      Icons.build,
-      Icons.color_lens,
-      Icons.phone_in_talk,
-      Icons.computer,
-    ];
-    IconData selectedIcon = iconChoices[0];
+    IconData selectedIcon = _iconCategories.values.first.first;
 
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setStateInDialog) {
-            return AlertDialog(
-              title: const Text('新しい項目を追加'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _textFieldController,
-                    decoration:
-                        const InputDecoration(hintText: "やることを入力..."),
-                    autofocus: true,
+            return DefaultTabController(
+              length: _iconCategories.keys.length,
+              child: AlertDialog(
+                title: const Text('新しい項目を追加'),
+                content: SizedBox(
+                  width: double.maxFinite,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: _textFieldController,
+                        decoration:
+                            const InputDecoration(hintText: "やることを入力..."),
+                        autofocus: true,
+                      ),
+                      const SizedBox(height: 20),
+                      TabBar(
+                        isScrollable: true,
+                        labelColor: Theme.of(context).primaryColor,
+                        unselectedLabelColor: Colors.grey,
+                        tabs: _iconCategories.keys
+                            .map((title) => Tab(text: title))
+                            .toList(),
+                      ),
+                      SizedBox(
+                        height: 200, // Fixed height for grid
+                        child: TabBarView(
+                          children: _iconCategories.values.map((icons) {
+                            return GridView.builder(
+                              padding: const EdgeInsets.all(8.0),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 5,
+                                crossAxisSpacing: 8.0,
+                                mainAxisSpacing: 8.0,
+                              ),
+                              itemCount: icons.length,
+                              itemBuilder: (context, index) {
+                                final icon = icons[index];
+                                return InkWell(
+                                  onTap: () {
+                                    setStateInDialog(() {
+                                      selectedIcon = icon;
+                                    });
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: selectedIcon == icon
+                                          ? Theme.of(context)
+                                              .primaryColor
+                                              .withValues(alpha: 0.2)
+                                          : null,
+                                      borderRadius: BorderRadius.circular(8.0),
+                                      border: selectedIcon == icon
+                                          ? Border.all(
+                                              color: Theme.of(context)
+                                                  .primaryColor,
+                                              width: 2.0)
+                                          : null,
+                                    ),
+                                    child: Icon(
+                                      icon,
+                                      color: selectedIcon == icon
+                                          ? Theme.of(context).primaryColor
+                                          : Colors.grey[700],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                  Wrap(
-                    spacing: 8.0,
-                    runSpacing: 4.0,
-                    children: iconChoices.map((icon) {
-                      return ChoiceChip(
-                        label: Icon(icon, size: 18),
-                        selected: selectedIcon == icon,
-                        onSelected: (bool selected) {
-                          setStateInDialog(() {
-                            if (selected) {
-                              selectedIcon = icon;
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
+                ),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('キャンセル'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _textFieldController.clear();
+                    },
+                  ),
+                  ElevatedButton(
+                    child: const Text('追加'),
+                    onPressed: () {
+                      if (_textFieldController.text.isNotEmpty) {
+                        setState(() {
+                          _checklistItems.add(
+                            ChecklistItem(
+                              title: _textFieldController.text,
+                              icon: selectedIcon,
+                            ),
+                          );
+                        });
+                        Navigator.of(context).pop();
+                        _textFieldController.clear();
+                      }
+                    },
                   ),
                 ],
               ),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('キャンセル'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    _textFieldController.clear();
-                  },
-                ),
-                ElevatedButton(
-                  child: const Text('追加'),
-                  onPressed: () {
-                    if (_textFieldController.text.isNotEmpty) {
-                      setState(() {
-                        _checklistItems.add(
-                          ChecklistItem(
-                            title: _textFieldController.text,
-                            icon: selectedIcon,
-                          ),
-                        );
-                      });
-                      Navigator.of(context).pop();
-                      _textFieldController.clear();
-                    }
-                  },
-                ),
-              ],
             );
           },
         );
@@ -463,9 +541,30 @@ class _ChecklistPageState extends State<ChecklistPage> {
   }
 
   void _deleteItem(ChecklistItem itemToDelete) {
-    setState(() {
-      _checklistItems.remove(itemToDelete);
-    });
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('削除の確認'),
+          content: Text('「${itemToDelete.title}」を削除しますか？'),
+          actions: [
+            TextButton(
+              child: const Text('キャンセル'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('削除', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                setState(() {
+                  _checklistItems.remove(itemToDelete);
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
 
@@ -503,6 +602,24 @@ class _ChecklistPageState extends State<ChecklistPage> {
           ],
         ),
         backgroundColor: settings.themeColor, // Use settings color
+        actions: [
+          TextButton.icon(
+            icon: Icon(
+              _isEditing ? Icons.check : Icons.edit,
+              color: Colors.white,
+            ),
+            label: Text(
+              _isEditing ? '完了' : '編集',
+              style: const TextStyle(color: Colors.white),
+            ),
+            onPressed: () {
+              setState(() {
+                _isEditing = !_isEditing;
+              });
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [
@@ -554,12 +671,14 @@ class _ChecklistPageState extends State<ChecklistPage> {
                             _checklistItems[index].isChecked = newValue!;
                           });
                         },
-                        secondary: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.grey),
-                          onPressed: () {
-                            _deleteItem(_checklistItems[index]);
-                          },
-                        ),
+                        secondary: _isEditing
+                            ? IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () {
+                                  _deleteItem(_checklistItems[index]);
+                                },
+                              )
+                            : null,
                       ),
                     ),
                   )

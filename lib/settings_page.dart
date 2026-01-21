@@ -111,7 +111,7 @@ class SettingsPage extends StatelessWidget {
   }
 
   Widget _buildFontTile(BuildContext context, SettingsModel settings, String fontKey, String label) {
-    final isSelected = settings.fontFamily == fontKey;
+
     return RadioListTile<String>(
       title: Text(
         label,
