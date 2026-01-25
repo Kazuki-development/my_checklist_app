@@ -10,7 +10,7 @@ plugins {
 
 android {
     namespace = "com.kazukiapps.my_checklist_app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36  // Required by google_mobile_ads and other plugins
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -25,10 +25,9 @@ android {
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.kazukiapps.my_checklist_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        // Set explicit SDK versions for proper device compatibility
+        minSdk = flutter.minSdkVersion  // Android 5.0 (Lollipop) - covers 99%+ of active devices
+        targetSdk = 34  // Android 14 - latest stable for Play Store
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
