@@ -27,7 +27,7 @@ android {
         applicationId = "com.kazukiapps.my_checklist_app"
         // Set explicit SDK versions for proper device compatibility
         minSdk = flutter.minSdkVersion  // Android 5.0 (Lollipop) - covers 99%+ of active devices
-        targetSdk = 34  // Android 14 - latest stable for Play Store
+        targetSdk = 35  // Android 15 - REQUIRED by Play Console (2024+)
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
@@ -53,8 +53,13 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // Enable R8 code shrinking and obfuscation
+            isMinifyEnabled = true
+            isShrinkResources = true
+            // Generate mapping files for crash deobfuscation
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
         }
     }
 }
